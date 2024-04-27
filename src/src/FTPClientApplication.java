@@ -1,52 +1,422 @@
-import action.Authenticate;
-import action.ActiveMode;
-import action.UploadFile;
-
 import java.io.*;
 import java.net.Socket;
+import java.util.Objects;
+import java.util.Scanner;
 
 public class FTPClientApplication {
 
-    private static Authenticate auth;
-    private static ActiveMode activeMode;
-    private static UploadFile uploadFile;
+    private static final String server = "127.0.0.1";
+    private static final int port = 1025;
+    private static final String username = "server";
+    private static final String password = "server";
 
-    public static void main(String args[]) {
-        String server = "127.0.0.1";
-        int port = 1025;
-        String username = "server";
-        String password = "server";
-        String filePath = "./files/origin.txt";
-        String remoteDirPath = "";
+    private static Socket serverSocket;
+    private static final Scanner scanner = new Scanner(System.in);
 
-        try (Socket socket = new Socket(server, port);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()))) {
+    //diretorio local
+    private static String root_local_dir = "./files";
+    private static String current_local_dir = "./files";
 
-            //INSTANCES
-            auth = new Authenticate(reader, writer);
-            activeMode = new ActiveMode(reader, writer, socket);
-            uploadFile = new UploadFile(reader, writer, socket);
+    //diretorio do servidor
+    private static String root_server_dir = "./files";
+    private static String relative_server_path = "";
+    private static String current_server_dir = "./files";
 
-            //SERVER WELCOME
-            String response = reader.readLine();
-            System.out.println("Server Welcome" + response);
+    //reader e writer
+    private static BufferedReader buffReader;
+    private static BufferedWriter buffWriter;
+    private static PrintWriter printWriter;
 
-            auth.execute(username+","+password);
 
-            String address = server.replace(".", ",");
-            activeMode.execute(address);
-
-            //aqui depois vai ser passado pelo usuario
-            String pathToFile = "./files/origin.txt";
-            uploadFile.execute(pathToFile);
-
-            System.out.println("fim do programa");
-
-        } catch (RuntimeException e) {
-            System.out.println(e.getMessage());
+    public static void main(String[] args) {
+        try {
+            //TODO: estudar para criar threads paralelas de execução
+            menu();
         }catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void menu() throws IOException {
+        int option = 0;
+
+        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxx");
+        System.out.println("xxxxxx Cliente FTP xxxxx");
+        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxx");
+
+        openConnection();
+        authenticate();
+
+        do {
+            System.out.println("Ações disponíveis abaixo:");
+            System.out.println("[1] - Ver diretório local");
+            System.out.println("[2] - Ver diretório servidor");
+            System.out.println("[3] - Alterar diretório local");
+            System.out.println("[4] - Alterar diretório servidor");
+            System.out.println("[5] - Criar diretório local");
+            System.out.println("[6] - Criar diretório servidor");
+            System.out.println("[7] - Ver arquivos do diretório local");
+            System.out.println("[8] - Ver arquivos do diretório servidor");
+            System.out.println("[9] - Subir arquivo local");
+            System.out.println("[10] - Baixar arquivo servidor");
+            System.out.println("\n");
+            System.out.print("Digite a opção desejada: ");
+
+            option = scanner.nextInt();
+
+            openConnection();
+            authenticate();
+
+            switch(option) {
+                case 1:
+                    getLocalDir();
+                    break;
+                case 2:
+                    getServerDir();
+                    break;
+                case 3:
+                    changeLocalDir();
+                    break;
+                case 4:
+                    changeServerDir();
+                    break;
+                case 5:
+                    makeLocalDir();
+                    break;
+                case 6:
+                    makeServerDir();
+                    break;
+                case 7:
+                    seeLocalFiles();
+                    break;
+                case 8:
+                    seeServerFiles();
+                    break;
+                case 9:
+                    uploadFile();
+                    break;
+                case 10:
+                    downloadFile();
+                    break;
+            }
+        }while(option != 0);
+
+        closeConnection();
+    }
+
+    private static void downloadFile() throws IOException {
+
+        activeMode();
+
+        System.out.print("Informe o nome do arquivo que deseja baixar do servidor: ");
+        String fname = scanner.next();
+        buffWriter.write("RETR "+fname+"\r\n");
+        buffWriter.flush();
+
+        String response = buffReader.readLine();
+        String code = response.split(" ")[0];
+
+        if(code.equals("550"))
+            throw new RuntimeException("Erro ao baixar arquivo. Razão: "+response);
+
+        System.out.println("iniciando copia de arquivo");
+
+        File newFile = new File(current_local_dir+"/"+fname);
+
+        BufferedReader rin = null;
+        PrintWriter rout = null;
+
+        try {
+            rin = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
+            rout = new PrintWriter(new FileOutputStream(newFile), true);
+
+        } catch (IOException e) {
+            System.out.println("Could not create file streams");
+        }
+
+        String s;
+
+        try {
+            while ((s = rin.readLine()) != null) {
+                rout.println(s);
+            }
+        } catch (IOException e) {
+            System.out.println("Could not read from or write to file streams");
             e.printStackTrace();
         }
+
+        System.out.println(buffReader.readLine());
+
+        try {
+            rout.close();
+            rin.close();
+        } catch (IOException e) {
+            System.out.println("Could not close file streams");
+            e.printStackTrace();
+        }
+
+        System.out.println("finalizando copia de arquivo");
+
+    }
+
+    //VALIDADO
+    private static void authenticate() throws IOException {
+        String response;
+        buffWriter.write("USER "+username+"\r\n");
+        buffWriter.flush();
+        response = buffReader.readLine();
+        String userCode = response.split(" ")[0];
+
+        if (!userCode.equals("331"))
+            throw new RuntimeException("Error while authenticate user. Reason: "+response);
+
+        buffWriter.write("PASS "+password+"\r\n");
+        buffWriter.flush();
+        response = buffReader.readLine();
+        String passCode = response.split(" ")[0];
+
+        if (!Objects.equals(passCode, "230"))
+            throw new RuntimeException("Error while authenticate user. Reason: "+response);
+
+        System.out.println("Authentication successfully executed");
+    }
+
+    //VALIDADO
+    private static void activeMode() throws IOException {
+        String response;
+        int localPort = serverSocket.getLocalPort();
+        int p1 = localPort / 256;
+        int p2 = localPort % 256;
+        buffWriter.write("PORT "+server.replace(".", ",")+","+p1+","+p2+"\r\n");
+        buffWriter.flush();
+        response = buffReader.readLine();
+        String code = response.split(" ")[0];
+
+        if (!code.equals("200"))
+            throw new RuntimeException("Error setting port connection in active mode. Reason: "+response);
+
+        System.out.println("Active mode defined successfully on server");
+    }
+
+    //VALIDADO
+    private static void openConnection() throws IOException {
+        serverSocket = new Socket(server, port);
+        buffReader = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
+        buffWriter = new BufferedWriter(new OutputStreamWriter(serverSocket.getOutputStream()));
+        printWriter = new PrintWriter(serverSocket.getOutputStream());
+    }
+
+    //VALIDADO
+    private static void closeConnection() throws IOException {
+        buffWriter.close();
+        buffReader.close();
+        printWriter.close();
+        serverSocket.close();
+    }
+
+    //VALIDADO
+    private static void uploadFile() throws IOException {
+
+        activeMode();
+
+        System.out.print("Informe qual arquivo deseja subir: ");
+        String filename = scanner.next();
+
+        File f = new File(current_local_dir+"/"+filename);
+
+            BufferedReader rin = null;
+            PrintWriter rout = null;
+
+            try {
+                rin = new BufferedReader(new FileReader(f));
+                rout = new PrintWriter(serverSocket.getOutputStream(), true);
+
+            } catch (IOException e) {
+                System.out.println("Could not create file streams");
+            }
+
+            printWriter.write("STOR "+filename+"\r\n");
+            printWriter.flush();
+
+            String s;
+
+            try {
+                while ((s = rin.readLine()) != null) {
+                    rout.println(s);
+                }
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+
+            System.out.println(buffReader.readLine());
+
+            try {
+                rout.close();
+                rin.close();
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+
+            System.out.println("Arquivo enviado com sucesso para ser salvo no servidor");
+    }
+
+    //VALIDADO
+    private static void getLocalDir() {
+        System.out.println(current_local_dir);
+    }
+
+    //TODO: ajustar (está trazendo arquivos do ./files qnd estou em subdir
+    private static void seeServerFiles() throws IOException {
+
+        buffWriter.write("LIST \r\n");
+        buffWriter.flush();
+
+        String response = buffReader.readLine();
+        String codeOne = response.split(" ")[0];
+
+        if (!codeOne.equals("125"))
+            throw new RuntimeException("Erro ao buscar arquivos do servidor. Razão: "+response);
+
+        System.out.println("Arquivos disponíveis no servidor");
+
+        String list_of_files = buffReader.readLine();
+        String codeTwo = list_of_files.split(" ")[0];
+
+        if(!codeTwo.equals("226"))
+            System.out.println("Não há arquivos no servidor");
+
+        else {
+            String[] files = list_of_files.split(" ")[1].split("&");
+            for(String f: files) {
+                System.out.println(f);
+            }
+        }
+
+    }
+
+    //VALIDADO
+    private static void seeLocalFiles() {
+        File file = new File(current_local_dir);
+
+        if (file.exists() && file.isDirectory()) {
+            for (String f : Objects.requireNonNull(file.list())) {
+                if (f.contains(".txt"))
+                    System.out.println(f);
+            }
+        } else if(file.exists() && file.isFile()) {
+            System.out.println("arquivo: "+file.getName());
+        } else {
+            System.out.println("Não há arquivos no diretório atual");
+        }
+    }
+
+    //VALIDADO
+    private static void getServerDir() throws IOException {
+
+
+        buffWriter.write("PWD\r\n");
+        buffWriter.flush();
+
+        String response = buffReader.readLine();
+        String code = response.split(" ")[0];
+        String path = response.split(" ")[1];
+
+        current_server_dir = path;
+
+        if (!code.equals("257"))
+            throw new RuntimeException("Error while retrieve server directory. Reason: "+response);
+
+        System.out.println(current_server_dir);
+
+    }
+
+    //VALIDADO
+    private static void changeServerDir() throws IOException {
+
+        System.out.print("Para onde deseja ir? ");
+        String subDir = scanner.next();
+        printWriter.write("CWD "+subDir+"\r\n");
+        printWriter.flush();
+        String response = buffReader.readLine();
+        String code = response.split(" ")[0];
+        String path = response.split(" ")[1];
+
+        if (!code.equals("250"))
+            throw new RuntimeException("Erro ao mudar de diretório no servidor. Razão: "+response);
+
+        current_server_dir = path;
+
+        System.out.println("Diretório do servidor alterado com sucesso");
+
+    }
+
+    //VALIDADO
+    private static void makeLocalDir() {
+        System.out.print("Informe nome desejado: ");
+        String dir = scanner.next();
+
+        if (dir != null && dir.matches("^[a-zA-Z0-9]+$")) {
+
+            File f = new File(current_local_dir + "/" + dir);
+
+            boolean wasFolderCreated = f.mkdir();
+
+            if (!wasFolderCreated) {
+                System.out.println("Erro ao criar novo diretório local");
+            } else {
+                System.out.println("Diretório será criado em breve");
+            }
+        }else {
+            System.out.println("Nome inválido para criação de diretório local");
+        }
+    }
+
+    //VALIDADO
+    private static void changeLocalDir() {
+        String filename = current_local_dir;
+
+        System.out.print("Indique diretório desejado: ");
+        String args = scanner.next();
+
+        if (args.equals("..")) {
+            int ind = filename.lastIndexOf("/");
+            if (ind > 0) {
+                filename = filename.substring(0, ind);
+            }
+        }
+
+        else if (!args.equals(".")) {
+            filename = filename + "/" + args;
+        }
+
+        File f = new File(filename);
+
+        if (f.exists() && f.isDirectory() && (filename.length() >= root_local_dir.length())) {
+            current_local_dir = filename;
+            System.out.println("Diretório local atualizado com sucesso");
+        }else {
+            System.out.println("Não foi possível alterar diretório local");
+        }
+    }
+
+    //VALIDADO
+    //TODO: verificar para respeitar dir atual e não apenas raiz
+    private static void makeServerDir() throws IOException {
+
+
+        System.out.print("Informe nome desejado: ");
+        String dir = scanner.next();
+
+        buffWriter.write("MKD "+dir+"\r\n");
+        buffWriter.flush();
+
+        String response = buffReader.readLine();
+        String code = response.split(" ")[0];
+
+        if(!code.equals("250"))
+            throw new RuntimeException("Erro ao criar diretório remoto. Razão: "+response);
+
+        System.out.println("Diretório remoto criado com sucesso");
+
     }
 }
