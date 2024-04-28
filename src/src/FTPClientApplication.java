@@ -18,9 +18,8 @@ public class FTPClientApplication {
     private static String current_local_dir = "./files";
 
     //diretorio do servidor
-    private static String root_server_dir = "./files";
-    private static String relative_server_path = "";
-    private static String current_server_dir = "./files";
+    private static String root_server_dir = "./files/";
+    private static String current_server_dir = "./files/";
 
     //reader e writer
     private static BufferedReader buffReader;
@@ -161,6 +160,9 @@ public class FTPClientApplication {
 
     //VALIDADO
     private static void authenticate() throws IOException {
+
+        System.out.println(buffReader.readLine());
+
         String response;
         buffWriter.write("USER "+username+"\r\n");
         buffWriter.flush();
@@ -214,6 +216,12 @@ public class FTPClientApplication {
         serverSocket.close();
     }
 
+    private static String defineServerRelativePath(String path) {
+        if(path.startsWith("./files/"))
+            return path.substring("./files/".length());
+
+        return path;
+    }
     //VALIDADO
     private static void uploadFile() throws IOException {
 
@@ -235,7 +243,9 @@ public class FTPClientApplication {
                 System.out.println("Could not create file streams");
             }
 
-            printWriter.write("STOR "+filename+"\r\n");
+            String relativePath = defineServerRelativePath(current_server_dir);
+
+            printWriter.write("STOR "+filename+" "+relativePath+"\r\n");
             printWriter.flush();
 
             String s;
@@ -313,6 +323,10 @@ public class FTPClientApplication {
     //VALIDADO
     private static void getServerDir() throws IOException {
 
+        if(!current_server_dir.equals(root_server_dir)) {
+            System.out.println(current_server_dir);
+            return;
+        }
 
         buffWriter.write("PWD\r\n");
         buffWriter.flush();
