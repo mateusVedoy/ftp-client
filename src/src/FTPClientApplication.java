@@ -109,7 +109,10 @@ public class FTPClientApplication {
 
         System.out.print("Informe o nome do arquivo que deseja baixar do servidor: ");
         String fname = scanner.next();
-        buffWriter.write("RETR "+fname+"\r\n");
+
+        String relativePath = defineServerRelativePath(current_server_dir);
+
+        buffWriter.write("RETR "+fname+" "+relativePath+"\r\n");
         buffWriter.flush();
 
         String response = buffReader.readLine();
