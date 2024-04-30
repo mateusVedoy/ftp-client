@@ -158,7 +158,7 @@ public class FTPClientApplication {
         }
 
         System.out.println("finalizando copia de arquivo");
-
+        System.in.read();
     }
 
     //VALIDADO
@@ -271,17 +271,20 @@ public class FTPClientApplication {
             }
 
             System.out.println("Arquivo enviado com sucesso para ser salvo no servidor");
+            System.in.read();
     }
 
     //VALIDADO
-    private static void getLocalDir() {
-        System.out.println(current_local_dir);
+    private static void getLocalDir() throws IOException {
+        System.out.println("Diretório local atual: "+current_local_dir);
+        System.in.read();
     }
 
-    //TODO: ajustar (está trazendo arquivos do ./files qnd estou em subdir
     private static void seeServerFiles() throws IOException {
 
-        buffWriter.write("LIST \r\n");
+        String relativePath = defineServerRelativePath(current_server_dir);
+
+        buffWriter.write("LIST "+relativePath+"\r\n");
         buffWriter.flush();
 
         String response = buffReader.readLine();
@@ -304,11 +307,11 @@ public class FTPClientApplication {
                 System.out.println(f);
             }
         }
-
+        System.in.read();
     }
 
     //VALIDADO
-    private static void seeLocalFiles() {
+    private static void seeLocalFiles() throws IOException {
         File file = new File(current_local_dir);
 
         if (file.exists() && file.isDirectory()) {
@@ -321,6 +324,7 @@ public class FTPClientApplication {
         } else {
             System.out.println("Não há arquivos no diretório atual");
         }
+        System.in.read();
     }
 
     //VALIDADO
@@ -343,8 +347,8 @@ public class FTPClientApplication {
         if (!code.equals("257"))
             throw new RuntimeException("Error while retrieve server directory. Reason: "+response);
 
-        System.out.println(current_server_dir);
-
+        System.out.println("Diretório servidor atual: "+current_server_dir);
+        System.in.read();
     }
 
     //VALIDADO
@@ -364,11 +368,11 @@ public class FTPClientApplication {
         current_server_dir = path;
 
         System.out.println("Diretório do servidor alterado com sucesso");
-
+        System.in.read();
     }
 
     //VALIDADO
-    private static void makeLocalDir() {
+    private static void makeLocalDir() throws IOException {
         System.out.print("Informe nome desejado: ");
         String dir = scanner.next();
 
@@ -386,10 +390,11 @@ public class FTPClientApplication {
         }else {
             System.out.println("Nome inválido para criação de diretório local");
         }
+        System.in.read();
     }
 
     //VALIDADO
-    private static void changeLocalDir() {
+    private static void changeLocalDir() throws IOException {
         String filename = current_local_dir;
 
         System.out.print("Indique diretório desejado: ");
@@ -414,10 +419,11 @@ public class FTPClientApplication {
         }else {
             System.out.println("Não foi possível alterar diretório local");
         }
+
+        System.in.read();
     }
 
     //VALIDADO
-    //TODO: verificar para respeitar dir atual e não apenas raiz
     private static void makeServerDir() throws IOException {
 
 
@@ -434,6 +440,6 @@ public class FTPClientApplication {
             throw new RuntimeException("Erro ao criar diretório remoto. Razão: "+response);
 
         System.out.println("Diretório remoto criado com sucesso");
-
+        System.in.read();
     }
 }
