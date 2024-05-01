@@ -1,0 +1,35 @@
+Bem-vindo ao Cliente FTP!
+
+Nosso cliente FTP foi desenvolvido para simplificar a transferência de arquivos entre seu computador e um servidor remoto. Aqui estão algumas funcionalidades essenciais, incluindo as opções disponíveis:
+
+1. **Autenticação de Usuário (USER, PASS):** Faça login com suas credenciais utilizando os comandos USER e PASS para acessar o servidor FTP com segurança.
+
+2. **Navegação de Diretórios (CWD):** Explore os diretórios do servidor remoto e encontre os arquivos que deseja transferir.
+
+3. **Listagem de Arquivos (LIST, NLST):** Obtenha uma lista dos arquivos disponíveis no diretório atual utilizando os comandos LIST ou NLST.
+
+4. **Informações do Diretório Atual (PWD, XPWD):** Visualize o caminho completo do diretório atual utilizando os comandos PWD ou XPWD.
+
+5. **Encerramento da Conexão (QUIT):** Desconecte-se do servidor quando terminar utilizando o comando QUIT.
+
+6. **Modo de Transferência (PASV, EPSV):** Alterne entre os modos de transferência passivo e ativo conforme necessário.
+
+7. **Sistema (SYST):** Obtenha informações sobre o sistema operacional do servidor remoto utilizando o comando SYST.
+
+8. **Recursos Disponíveis (FEAT):** Verifique os recursos suportados pelo servidor utilizando o comando FEAT.
+
+9. **Porta de Dados (PORT, EPRT):** Especifique a porta de dados para a transferência de arquivos utilizando os comandos PORT ou EPRT.
+
+10. **Recuperação de Arquivos (RETR):** Baixe arquivos do servidor para o seu computador utilizando o comando RETR.
+
+11. **Criação de Diretórios (MKD, XMKD):** Crie novos diretórios no servidor utilizando os comandos MKD ou XMKD.
+
+12. **Remoção de Diretórios (RMD, XRMD):** Remova diretórios do servidor utilizando os comandos RMD ou XRMD.
+
+13. **Tipo de Transferência (TYPE):** Especifique o tipo de transferência de arquivo (ASCII, binário, etc.) utilizando o comando TYPE.
+
+14. **Armazenamento de Arquivos (STOR):** Envie arquivos do seu computador para o servidor utilizando o comando STOR.
+
+Se precisar de assistência adicional ou tiver alguma dúvida sobre como usar nosso cliente FTP, não hesite em nos contatar.
+
+Tenha uma excelente experiência com nosso cliente FTP!
