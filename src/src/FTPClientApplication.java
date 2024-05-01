@@ -47,6 +47,7 @@ public class FTPClientApplication {
 
         do {
             System.out.println("\nAções disponíveis abaixo:");
+            System.out.println("[0] - Encerrar conexão");
             System.out.println("[1] - Ver diretório local");
             System.out.println("[2] - Ver diretório servidor");
             System.out.println("[3] - Alterar diretório local");
@@ -57,6 +58,7 @@ public class FTPClientApplication {
             System.out.println("[8] - Ver arquivos do diretório servidor");
             System.out.println("[9] - Subir arquivo local");
             System.out.println("[10] - Baixar arquivo servidor");
+            System.out.println("[11] - Deletar arquivo servidor");
             System.out.println("\n");
             System.out.print("Digite a opção desejada: ");
 
@@ -98,10 +100,34 @@ public class FTPClientApplication {
                 case 10:
                     downloadFile();
                     break;
+                case 11:
+                    deleteServerFile();
+                    break;
             }
         }while(option != 0);
 
         closeConnection();
+    }
+
+    private static void deleteServerFile() throws IOException {
+
+        System.out.print("Informe o nome do arquivo que deseja deletar do servidor:");
+        String fname = scanner.next();
+
+        String relativePath = defineServerRelativePath(current_server_dir);
+
+        buffWriter.write("DEL "+fname+" "+relativePath+"\r\n");
+        buffWriter.flush();
+
+        String response = buffReader.readLine();
+        String code = response.split(" ")[0];
+
+        if (!code.equals("200"))
+            System.out.println("Erro ao deletar arquivo. Motivo: "+response);
+        else
+            System.out.println("Arquivo será deletado do servidor em breve");
+
+        System.in.read();
     }
 
     private static void quitServer() throws IOException {
