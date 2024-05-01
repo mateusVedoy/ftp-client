@@ -29,7 +29,6 @@ public class FTPClientApplication {
 
     public static void main(String[] args) {
         try {
-            //TODO: estudar para criar threads paralelas de execução
             menu();
         }catch (IOException e) {
             System.out.println(e.getMessage());
@@ -41,13 +40,13 @@ public class FTPClientApplication {
 
         System.out.println("xxxxxxxxxxxxxxxxxxxxxxxx");
         System.out.println("xxxxxx Cliente FTP xxxxx");
-        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxx");
+        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxx\n");
 
         openConnection();
         authenticate();
 
         do {
-            System.out.println("Ações disponíveis abaixo:");
+            System.out.println("\nAções disponíveis abaixo:");
             System.out.println("[1] - Ver diretório local");
             System.out.println("[2] - Ver diretório servidor");
             System.out.println("[3] - Alterar diretório local");
@@ -67,6 +66,8 @@ public class FTPClientApplication {
             authenticate();
 
             switch(option) {
+                case 0:
+                    quitServer();
                 case 1:
                     getLocalDir();
                     break;
@@ -103,6 +104,11 @@ public class FTPClientApplication {
         closeConnection();
     }
 
+    private static void quitServer() throws IOException {
+        buffWriter.write("QUIT \r\n");
+        buffWriter.flush();
+    }
+
     private static void downloadFile() throws IOException {
 
         activeMode();
@@ -133,7 +139,7 @@ public class FTPClientApplication {
             rout = new PrintWriter(new FileOutputStream(newFile), true);
 
         } catch (IOException e) {
-            System.out.println("Could not create file streams");
+            System.out.println("Não foi possível criar stream de arquivo");
         }
 
         String s;
@@ -143,17 +149,15 @@ public class FTPClientApplication {
                 rout.println(s);
             }
         } catch (IOException e) {
-            System.out.println("Could not read from or write to file streams");
+            System.out.println("Não foi possível ler ou escrever junto ao servidor");
             e.printStackTrace();
         }
-
-        System.out.println(buffReader.readLine());
 
         try {
             rout.close();
             rin.close();
         } catch (IOException e) {
-            System.out.println("Could not close file streams");
+            System.out.println("Não foi possível fechar stream de arquivo");
             e.printStackTrace();
         }
 
@@ -173,7 +177,7 @@ public class FTPClientApplication {
         String userCode = response.split(" ")[0];
 
         if (!userCode.equals("331"))
-            throw new RuntimeException("Error while authenticate user. Reason: "+response);
+            throw new RuntimeException("Erro ao autenticar usuário. Motivo: "+response);
 
         buffWriter.write("PASS "+password+"\r\n");
         buffWriter.flush();
@@ -181,9 +185,8 @@ public class FTPClientApplication {
         String passCode = response.split(" ")[0];
 
         if (!Objects.equals(passCode, "230"))
-            throw new RuntimeException("Error while authenticate user. Reason: "+response);
+            throw new RuntimeException("Erro ao autenticar. Motivo: "+response);
 
-        System.out.println("Authentication successfully executed");
     }
 
     //VALIDADO
@@ -198,9 +201,8 @@ public class FTPClientApplication {
         String code = response.split(" ")[0];
 
         if (!code.equals("200"))
-            throw new RuntimeException("Error setting port connection in active mode. Reason: "+response);
+            throw new RuntimeException("Erro ao definir porta de conexão ativa. Motivo: "+response);
 
-        System.out.println("Active mode defined successfully on server");
     }
 
     //VALIDADO
@@ -222,7 +224,8 @@ public class FTPClientApplication {
     private static String defineServerRelativePath(String path) {
         if(path.startsWith("./files/"))
             return path.substring("./files/".length());
-
+        if (path.startsWith("./files"))
+            return path.substring("./files".length());
         return path;
     }
     //VALIDADO
@@ -243,7 +246,7 @@ public class FTPClientApplication {
                 rout = new PrintWriter(serverSocket.getOutputStream(), true);
 
             } catch (IOException e) {
-                System.out.println("Could not create file streams");
+                System.out.println("Não foi possível criar stream de arquivos");
             }
 
             String relativePath = defineServerRelativePath(current_server_dir);
@@ -261,7 +264,7 @@ public class FTPClientApplication {
                 System.out.println(e.getMessage());
             }
 
-            System.out.println(buffReader.readLine());
+//            System.out.println(buffReader.readLine());
 
             try {
                 rout.close();
@@ -345,9 +348,10 @@ public class FTPClientApplication {
         current_server_dir = path;
 
         if (!code.equals("257"))
-            throw new RuntimeException("Error while retrieve server directory. Reason: "+response);
+            throw new RuntimeException("Erro ao buscar diretório atual do servidor. Motivo: "+response);
 
         System.out.println("Diretório servidor atual: "+current_server_dir);
+
         System.in.read();
     }
 
