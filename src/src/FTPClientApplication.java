@@ -26,7 +26,6 @@ public class FTPClientApplication {
     private static BufferedWriter buffWriter;
     private static PrintWriter printWriter;
 
-
     public static void main(String[] args) {
         try {
             menu();
@@ -56,9 +55,11 @@ public class FTPClientApplication {
             System.out.println("[6] - Criar diretório servidor");
             System.out.println("[7] - Ver arquivos do diretório local");
             System.out.println("[8] - Ver arquivos do diretório servidor");
-            System.out.println("[9] - Subir arquivo local");
-            System.out.println("[10] - Baixar arquivo servidor");
-            System.out.println("[11] - Deletar arquivo servidor");
+            System.out.println("[9] - Ver sub-diretórios do diretório local");
+            System.out.println("[10] - Ver sub-diretórios do diretório servidor");
+            System.out.println("[11] - Subir arquivo local");
+            System.out.println("[12] - Baixar arquivo servidor");
+            System.out.println("[13] - Deletar arquivo servidor");
             System.out.println("\n");
             System.out.print("Digite a opção desejada: ");
 
@@ -95,18 +96,66 @@ public class FTPClientApplication {
                     seeServerFiles();
                     break;
                 case 9:
-                    uploadFile();
+                    seeLocalSubDir();
                     break;
                 case 10:
-                    downloadFile();
+                    seeServerSubDir();
                     break;
                 case 11:
+                    uploadFile();
+                    break;
+                case 12:
+                    downloadFile();
+                    break;
+                case 13:
                     deleteServerFile();
                     break;
             }
         }while(option != 0);
 
         closeConnection();
+    }
+
+    private static void seeLocalSubDir() throws IOException {
+        File dir = new File(current_local_dir);
+        File[] files = dir.listFiles();
+
+        System.out.println("Subdiretórios locais disponíveis: ");
+        for (File file : files) {
+            if (file.isDirectory()) {
+                System.out.println(file.getName());
+            }
+        }
+
+        System.in.read();
+    }
+    private static void seeServerSubDir() throws IOException {
+        String relativePath = defineServerRelativePath(current_server_dir);
+
+        buffWriter.write("DIR "+relativePath+"\r\n");
+        buffWriter.flush();
+
+        String response = buffReader.readLine();
+        String codeOne = response.split(" ")[0];
+
+        if (!codeOne.equals("125"))
+            throw new RuntimeException("Erro ao buscar subdiretórios do servidor. Razão: "+response);
+
+        System.out.println("subdiretórios disponíveis no servidor");
+
+        String list_of_files = buffReader.readLine();
+        String codeTwo = list_of_files.split(" ")[0];
+
+        if(!codeTwo.equals("226"))
+            System.out.println("Não há sudbiretórios no servidor");
+
+        else {
+            String[] files = list_of_files.split(" ")[1].split("&");
+            for(String f: files) {
+                System.out.println(f);
+            }
+        }
+        System.in.read();
     }
 
     private static void deleteServerFile() throws IOException {
@@ -194,7 +243,7 @@ public class FTPClientApplication {
     //VALIDADO
     private static void authenticate() throws IOException {
 
-        System.out.println(buffReader.readLine());
+        buffReader.readLine();
 
         String response;
         buffWriter.write("USER "+username+"\r\n");
